@@ -1,0 +1,96 @@
+import org.openqa.selenium.*;
+import java.util.List;
+
+public class CustomDriver {
+    private WebDriver driver;
+    private final long delayInMillis = 500;
+    private final int maxRetries = 3;
+
+    public CustomDriver(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    private void waitBeforeAction() {
+        try {
+            Thread.sleep(delayInMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void retryOnFailure(Runnable action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                action.run();
+                return;
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Retrying due to stale element...");
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("Retrying due to click being intercepted...");
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to element not found...");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to element not interactable...");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Action failed after " + maxRetries + " attempts.");
+    }
+
+    private <T> T retryOnFailureReturn(SupplierWithException<T> action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                return action.get();
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Retrying due to stale element...");
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("Retrying due to click being intercepted...");
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to element not found...");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to element not interactable...");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Failed to retrieve result after " + maxRetries + " attempts.");
+    }
+
+    public WebElement findElement(By locator) {
+        return retryOnFailureReturn(() -> driver.findElement(locator));
+    }
+
+    public List<WebElement> findElements(By locator) {
+        return retryOnFailureReturn(() -> driver.findElements(locator));
+    }
+
+    public void click(By locator) {
+        retryOnFailure(() -> driver.findElement(locator).click());
+    }
+
+    public void sendKeys(By locator, String text) {
+        retryOnFailure(() -> driver.findElement(locator).sendKeys(text));
+    }
+
+    public void clear(By locator) {
+        retryOnFailure(() -> driver.findElement(locator).clear());
+    }
+
+    public void quit() {
+        driver.quit();
+    }
+
+    public WebDriver getRawDriver() {
+        return driver;
+    }
+
+    @FunctionalInterface
+    interface SupplierWithException<T> {
+        T get() throws WebDriverException;
+    }
+}
