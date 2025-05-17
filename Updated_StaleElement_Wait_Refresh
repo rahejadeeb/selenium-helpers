@@ -1,0 +1,137 @@
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+import java.util.List;
+
+public class CustomDriver {
+    private WebDriver driver;
+    private final long delayInMillis = 500;
+    private final int maxRetries = 3;
+    private final Duration explicitWaitDuration = Duration.ofSeconds(5);
+
+    public CustomDriver(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    private void waitBeforeAction() {
+        try {
+            Thread.sleep(delayInMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private WebDriverWait wait() {
+        return new WebDriverWait(driver, explicitWaitDuration);
+    }
+
+    private void retryOnFailure(Runnable action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                action.run();
+                return;
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Retrying due to stale element...");
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("Retrying due to click being intercepted...");
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to element not found...");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to element not interactable...");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Action failed after " + maxRetries + " attempts.");
+    }
+
+    private <T> T retryOnFailureReturn(SupplierWithException<T> action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                return action.get();
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Retrying due to stale element...");
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("Retrying due to click being intercepted...");
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to element not found...");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to element not interactable...");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Failed to retrieve result after " + maxRetries + " attempts.");
+    }
+
+    public WebElement findElement(By locator) {
+        return retryOnFailureReturn(() ->
+            wait().until(ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(locator)))
+        );
+    }
+
+    public List<WebElement> findElements(By locator) {
+        return retryOnFailureReturn(() -> driver.findElements(locator));
+    }
+
+    public void click(By locator) {
+        retryOnFailure(() -> {
+            WebElement element = wait().until(ExpectedConditions.refreshed(ExpectedConditions.elementToBeClickable(locator)));
+            element.click();
+        });
+    }
+
+    public void sendKeys(By locator, String text) {
+        retryOnFailure(() -> {
+            WebElement element = wait().until(ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(locator)));
+            element.sendKeys(text);
+        });
+    }
+
+    public void clear(By locator) {
+        retryOnFailure(() -> {
+            WebElement element = wait().until(ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(locator)));
+            element.clear();
+        });
+    }
+
+    // WebDriver proxy methods
+    public void get(String url) {
+        driver.get(url);
+    }
+
+    public void close() {
+        driver.close();
+    }
+
+    public void quit() {
+        driver.quit();
+    }
+
+    public WebDriver.Navigation navigate() {
+        return driver.navigate();
+    }
+
+    public WebDriver.Options manage() {
+        return driver.manage();
+    }
+
+    public WebDriver.TargetLocator switchTo() {
+        return driver.switchTo();
+    }
+
+    public WebDriver getRawDriver() {
+        return driver;
+    }
+
+    @FunctionalInterface
+    interface SupplierWithException<T> {
+        T get() throws WebDriverException;
+    }
+}
