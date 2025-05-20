@@ -1,0 +1,166 @@
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.util.List;
+
+public class CustomDriver {
+    private WebDriver driver;
+    private final long delayInMillis = 500;
+    private final int maxRetries = 3;
+    private final int explicitWaitDuration = 10; // in seconds
+
+    public CustomDriver(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    private void waitBeforeAction() {
+        try {
+            Thread.sleep(delayInMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private WebDriverWait getWait() {
+        return new WebDriverWait(driver, explicitWaitDuration);
+    }
+
+    private void retryOnFailure(Runnable action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                action.run();
+                return;
+            } catch (StaleElementReferenceException | ElementClickInterceptedException e) {
+                System.out.println("Retrying due to: " + e.getClass().getSimpleName());
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to: NoSuchElementException");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to: ElementNotInteractableException");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Action failed after " + maxRetries + " attempts.");
+    }
+
+    private <T> T retryOnFailureReturn(SupplierWithException<T> action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                return action.get();
+            } catch (StaleElementReferenceException | ElementClickInterceptedException e) {
+                System.out.println("Retrying due to: " + e.getClass().getSimpleName());
+            } catch (NoSuchElementException e) {
+                System.out.println("Retrying due to: NoSuchElementException");
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Retrying due to: ElementNotInteractableException");
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Failed to retrieve result after " + maxRetries + " attempts.");
+    }
+
+    public WebElement findElement(By locator) {
+        return retryOnFailureReturn(() ->
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator))
+        );
+    }
+
+    public List<WebElement> findElements(By locator) {
+        return retryOnFailureReturn(() -> driver.findElements(locator));
+    }
+
+    public void click(By locator) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.elementToBeClickable(locator));
+            WebElement element = driver.findElement(locator); // fresh fetch
+            try {
+                element.click();
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Fallback: Retrying click via JavaScript...");
+                WebElement freshElement = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", freshElement);
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("Fallback: Click intercepted, trying JS click...");
+                WebElement freshElement = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", freshElement);
+            }
+        });
+    }
+
+    public void sendKeys(By locator, String text) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator));
+            WebElement element = driver.findElement(locator); // fresh fetch
+            try {
+                element.clear();
+                element.sendKeys(text);
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Fallback: Retrying sendKeys via JavaScript...");
+                WebElement freshElement = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", freshElement, text);
+            } catch (ElementNotInteractableException e) {
+                System.out.println("Fallback: Element not interactable, using JS sendKeys...");
+                WebElement freshElement = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", freshElement, text);
+            }
+        });
+    }
+
+    public void clear(By locator) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator));
+            WebElement element = driver.findElement(locator);
+            try {
+                element.clear();
+            } catch (StaleElementReferenceException e) {
+                System.out.println("Fallback: clearing using JS");
+                WebElement freshElement = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = '';", freshElement);
+            }
+        });
+    }
+
+    // WebDriver proxy methods
+    public void get(String url) {
+        driver.get(url);
+    }
+
+    public void close() {
+        driver.close();
+    }
+
+    public void quit() {
+        driver.quit();
+    }
+
+    public WebDriver.Navigation navigate() {
+        return driver.navigate();
+    }
+
+    public WebDriver.Options manage() {
+        return driver.manage();
+    }
+
+    public WebDriver.TargetLocator switchTo() {
+        return driver.switchTo();
+    }
+
+    public WebDriver getRawDriver() {
+        return driver;
+    }
+
+    public String getCurrentUrl() {
+        return driver.getCurrentUrl();
+    }
+
+    @FunctionalInterface
+    interface SupplierWithException<T> {
+        T get() throws WebDriverException;
+    }
+}
