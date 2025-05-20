@@ -1,0 +1,106 @@
+package utils;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+public class ExcelWriter {
+
+    private static final String FILE_PATH = "src/test/resources/output/test-output.xlsx";
+    private static final String SHEET_NAME = "TestResults";
+
+    private static final List<String> HEADERS = Arrays.asList(
+        "Serial Number",
+        "Date and Time",
+        "CID",
+        "Account Number",
+        "Application Number",
+        "OLL Account Number"
+    );
+
+    public static void writeData(String cid, String accountNumber, String applicationNumber, String ollAccountNumber) {
+        try {
+            Workbook workbook;
+            Sheet sheet;
+            File file = new File(FILE_PATH);
+
+            // Check if Excel file already exists
+            if (file.exists()) {
+                FileInputStream fis = new FileInputStream(file);
+                workbook = new XSSFWorkbook(fis);
+                sheet = workbook.getSheet(SHEET_NAME);
+                if (sheet == null) {
+                    sheet = workbook.createSheet(SHEET_NAME);
+                    createHeader(workbook, sheet);
+                }
+                fis.close();
+            } else {
+                Files.createDirectories(Paths.get("src/test/resources/output"));
+                workbook = new XSSFWorkbook();
+                sheet = workbook.createSheet(SHEET_NAME);
+                createHeader(workbook, sheet);
+            }
+
+            // Determine next available row
+            int lastRowNum = sheet.getLastRowNum();
+            int serialNumber;
+            if (lastRowNum == 0 && sheet.getRow(1) == null) {
+                serialNumber = 1;
+            } else {
+                serialNumber = lastRowNum;
+            }
+
+            Row dataRow = sheet.createRow(lastRowNum + 1);
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+
+            dataRow.createCell(0).setCellValue(serialNumber);         // Serial Number
+            dataRow.createCell(1).setCellValue(timestamp);            // Date and Time
+            dataRow.createCell(2).setCellValue(cid);                  // CID
+            dataRow.createCell(3).setCellValue(accountNumber);        // Account Number
+            dataRow.createCell(4).setCellValue(applicationNumber);    // Application Number
+            dataRow.createCell(5).setCellValue(ollAccountNumber);     // OLL Account Number
+
+            // Auto-size columns
+            for (int i = 0; i < HEADERS.size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            FileOutputStream fos = new FileOutputStream(FILE_PATH);
+            workbook.write(fos);
+            workbook.close();
+            fos.close();
+
+            System.out.println("✅ Data written to Excel at: " + FILE_PATH);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("❌ Failed to write to Excel", e);
+        }
+    }
+
+    private static void createHeader(Workbook workbook, Sheet sheet) {
+        Row headerRow = sheet.createRow(0);
+
+        // Style for bold and centered header
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+
+        for (int i = 0; i < HEADERS.size(); i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(HEADERS.get(i));
+            cell.setCellStyle(style);
+        }
+
+        for (int i = 0; i < HEADERS.size(); i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+}
