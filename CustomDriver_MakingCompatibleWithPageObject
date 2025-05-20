@@ -1,0 +1,190 @@
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.util.List;
+
+public class CustomDriver implements WebDriver {
+    private WebDriver driver;
+    private final long delayInMillis = 500;
+    private final int maxRetries = 3;
+    private final int explicitWaitDuration = 10; // in seconds
+
+    public CustomDriver(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    private void waitBeforeAction() {
+        try {
+            Thread.sleep(delayInMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private WebDriverWait getWait() {
+        return new WebDriverWait(driver, explicitWaitDuration);
+    }
+
+    private void retryOnFailure(Runnable action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                action.run();
+                return;
+            } catch (StaleElementReferenceException | ElementClickInterceptedException |
+                     NoSuchElementException | ElementNotInteractableException e) {
+                System.out.println("Retrying due to: " + e.getClass().getSimpleName());
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Action failed after " + maxRetries + " attempts.");
+    }
+
+    private <T> T retryOnFailureReturn(SupplierWithException<T> action) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                waitBeforeAction();
+                return action.get();
+            } catch (StaleElementReferenceException | ElementClickInterceptedException |
+                     NoSuchElementException | ElementNotInteractableException e) {
+                System.out.println("Retrying due to: " + e.getClass().getSimpleName());
+            }
+            attempts++;
+            waitBeforeAction();
+        }
+        throw new RuntimeException("Failed to retrieve result after " + maxRetries + " attempts.");
+    }
+
+    // ---------- Custom Methods ----------
+    public WebElement findElement(By locator) {
+        return retryOnFailureReturn(() ->
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator))
+        );
+    }
+
+    public List<WebElement> findElements(By locator) {
+        return retryOnFailureReturn(() -> driver.findElements(locator));
+    }
+
+    public void click(By locator) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.elementToBeClickable(locator));
+            WebElement element = driver.findElement(locator);
+            try {
+                element.click();
+            } catch (StaleElementReferenceException | ElementClickInterceptedException e) {
+                System.out.println("Fallback: JavaScript click");
+                WebElement fresh = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", fresh);
+            }
+        });
+    }
+
+    public void sendKeys(By locator, String text) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator));
+            WebElement element = driver.findElement(locator);
+            try {
+                element.clear();
+                element.sendKeys(text);
+            } catch (StaleElementReferenceException | ElementNotInteractableException e) {
+                System.out.println("Fallback: JS sendKeys");
+                WebElement fresh = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", fresh, text);
+            }
+        });
+    }
+
+    public void clear(By locator) {
+        retryOnFailure(() -> {
+            getWait().until(ExpectedConditions.presenceOfElementLocated(locator));
+            WebElement element = driver.findElement(locator);
+            try {
+                element.clear();
+            } catch (StaleElementReferenceException e) {
+                WebElement fresh = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].value = '';", fresh);
+            }
+        });
+    }
+
+    public WebDriver getRawDriver() {
+        return driver;
+    }
+
+    // ---------- Implement WebDriver Methods (Delegation) ----------
+    @Override
+    public void get(String url) {
+        driver.get(url);
+    }
+
+    @Override
+    public String getCurrentUrl() {
+        return driver.getCurrentUrl();
+    }
+
+    @Override
+    public String getTitle() {
+        return driver.getTitle();
+    }
+
+    @Override
+    public List<WebElement> findElements(By by) {
+        return driver.findElements(by);
+    }
+
+    @Override
+    public WebElement findElement(By by) {
+        return driver.findElement(by);
+    }
+
+    @Override
+    public String getPageSource() {
+        return driver.getPageSource();
+    }
+
+    @Override
+    public void close() {
+        driver.close();
+    }
+
+    @Override
+    public void quit() {
+        driver.quit();
+    }
+
+    @Override
+    public Set<String> getWindowHandles() {
+        return driver.getWindowHandles();
+    }
+
+    @Override
+    public String getWindowHandle() {
+        return driver.getWindowHandle();
+    }
+
+    @Override
+    public TargetLocator switchTo() {
+        return driver.switchTo();
+    }
+
+    @Override
+    public Navigation navigate() {
+        return driver.navigate();
+    }
+
+    @Override
+    public Options manage() {
+        return driver.manage();
+    }
+
+    // ---------- Functional Interface ----------
+    @FunctionalInterface
+    interface SupplierWithException<T> {
+        T get() throws WebDriverException;
+    }
+}
