@@ -1,0 +1,50 @@
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.By;
+
+public class LoginPage {
+
+    private CustomDriver customDriver;
+
+    // Use @FindBy for readability and assertions if needed
+    @FindBy(id = "username")
+    private WebElement usernameField;
+
+    @FindBy(id = "password")
+    private WebElement passwordField;
+
+    @FindBy(id = "loginButton")
+    private WebElement loginButton;
+
+    // Also store By locators to interact via CustomDriver
+    private final By usernameLocator = By.id("username");
+    private final By passwordLocator = By.id("password");
+    private final By loginButtonLocator = By.id("loginButton");
+
+    public LoginPage(CustomDriver customDriver) {
+        this.customDriver = customDriver;
+        PageFactory.initElements(customDriver.getRawDriver(), this); // init @FindBy elements
+    }
+
+    public void enterUsername(String username) {
+        customDriver.sendKeys(usernameLocator, username); // uses retry + wait
+    }
+
+    public void enterPassword(String password) {
+        customDriver.sendKeys(passwordLocator, password);
+    }
+
+    public void clickLogin() {
+        customDriver.click(loginButtonLocator);
+    }
+
+    public boolean isLoginButtonDisplayed() {
+        return loginButton.isDisplayed(); // safe usage of @FindBy element
+    }
+
+    public String getPageUrl() {
+        return customDriver.getCurrentUrl();
+    }
+}
