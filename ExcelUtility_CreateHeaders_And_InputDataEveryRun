@@ -29,6 +29,7 @@ public class ExcelWriter {
             Sheet sheet;
             File file = new File(FILE_PATH);
 
+            // Check if Excel file already exists
             if (file.exists()) {
                 FileInputStream fis = new FileInputStream(file);
                 workbook = new XSSFWorkbook(fis);
@@ -45,10 +46,16 @@ public class ExcelWriter {
                 createHeader(workbook, sheet);
             }
 
+            // Determine next available row
             int lastRowNum = sheet.getLastRowNum();
-            Row dataRow = sheet.createRow(lastRowNum + 1);
+            int serialNumber;
+            if (lastRowNum == 0 && sheet.getRow(1) == null) {
+                serialNumber = 1;
+            } else {
+                serialNumber = lastRowNum;
+            }
 
-            int serialNumber = lastRowNum; // 0-based, header is row 0
+            Row dataRow = sheet.createRow(lastRowNum + 1);
             String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
             dataRow.createCell(0).setCellValue(serialNumber);         // Serial Number
@@ -58,7 +65,7 @@ public class ExcelWriter {
             dataRow.createCell(4).setCellValue(applicationNumber);    // Application Number
             dataRow.createCell(5).setCellValue(ollAccountNumber);     // OLL Account Number
 
-            // Auto-size columns for neat formatting
+            // Auto-size columns
             for (int i = 0; i < HEADERS.size(); i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -68,7 +75,7 @@ public class ExcelWriter {
             workbook.close();
             fos.close();
 
-            System.out.println("✅ Data written to Excel: " + FILE_PATH);
+            System.out.println("✅ Data written to Excel at: " + FILE_PATH);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -79,7 +86,7 @@ public class ExcelWriter {
     private static void createHeader(Workbook workbook, Sheet sheet) {
         Row headerRow = sheet.createRow(0);
 
-        // Bold and center style
+        // Style for bold and centered header
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
         font.setBold(true);
