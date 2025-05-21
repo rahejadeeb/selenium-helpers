@@ -1,0 +1,45 @@
+package hooks;
+
+import TestComponents.BaseTest;
+import core.CustomDriver;
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
+import cucumber.api.Scenario;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+public class Hooks {
+
+    public static CustomDriver driver;
+
+    @Before
+    public void setUp() throws Exception {
+        System.out.println("Inside @Before hook");
+        BaseTest base = new BaseTest();
+        WebDriver rawDriver = base.initializeBrowser();
+        driver = new CustomDriver(rawDriver); // wrap with CustomDriver
+    }
+
+    @After
+    public void takeScreenshotOnFailure(Scenario scenario) {
+        if (scenario.isFailed() && driver != null) {
+            try {
+                byte[] screenshot = ((TakesScreenshot) driver.getDriver()).getScreenshotAs(OutputType.BYTES);
+
+                String screenshotDir = "target/screenshots/";
+                String screenshotName = scenario.getName().replaceAll("[^a-zA-Z0-9-_]", "_") + ".png";
+
+                Files.createDirectories(Paths.get(screenshotDir));
+                Files.write(Paths.get(screenshotDir + screenshotName), screenshot);
+                System.out.println("Saved screenshot: " + screenshotDir + screenshotName);
+            } catch (IOException e) {
+                System.err.println("Failed to save screenshot: " + e.getMessage());
+            }
+        }
+    }
+}
