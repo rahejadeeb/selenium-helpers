@@ -1,0 +1,33 @@
+package utils;
+
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.reporter.ExtentHtmlReporter;
+
+public class ExtentReporter {
+    private static ExtentReports extent;
+    private static ExtentTest test;
+
+    public static ExtentReports getInstance() {
+        if (extent == null) {
+            ExtentHtmlReporter htmlReporter = new ExtentHtmlReporter("target/extent-report.html");
+            extent = new ExtentReports();
+            extent.attachReporter(htmlReporter);
+            extent.setSystemInfo("Tester", "YourName");
+        }
+        return extent;
+    }
+
+    public static ExtentTest createTest(String name) {
+        test = getInstance().createTest(name);
+        return test;
+    }
+
+    public static ExtentTest getTest() {
+        return test;
+    }
+
+    public static void flush() {
+        getInstance().flush();
+    }
+}
