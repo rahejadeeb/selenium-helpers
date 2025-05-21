@@ -1,0 +1,21 @@
+package runner;
+
+import cucumber.api.CucumberOptions;
+import cucumber.api.junit.Cucumber;
+import org.junit.Rule;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import util.RetryRule; // adjust this if RetryRule is in a different package
+
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "src/test/resources/features",
+    glue = {"stepdefinitions"},
+    plugin = {"pretty", "html:target/cucumber-reports"},
+    tags = "@smoke"
+)
+public class RetryableCucumberRunner {
+
+    @Rule
+    public TestRule retryRule = new RetryRule(2); // Retry failed scenarios twice
+}
