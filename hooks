@@ -1,0 +1,31 @@
+package hooks;
+
+import TestComponents.BaseTest;
+import customdriver.CustomDriver; // adjust package as per your setup
+import io.cucumber.java.After;
+import io.cucumber.java.Before;
+
+import org.openqa.selenium.WebDriver;
+
+public class Hooks {
+
+    private static CustomDriver customDriver;
+    BaseTest base = new BaseTest();
+
+    @Before
+    public void setUp() throws Exception {
+        WebDriver driver = base.initializeBrowser();
+        customDriver = new CustomDriver(driver);  // wrap with CustomDriver
+    }
+
+    @After
+    public void tearDown() {
+        if (customDriver != null) {
+            customDriver.getDriver().quit();
+        }
+    }
+
+    public static CustomDriver getCustomDriver() {
+        return customDriver;
+    }
+}
