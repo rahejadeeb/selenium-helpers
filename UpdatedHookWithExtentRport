@@ -1,0 +1,59 @@
+package hooks;
+
+import TestComponents.BaseTest;
+import core.CustomDriver;
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
+import cucumber.api.Scenario;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+
+import com.aventstack.extentreports.Status;
+import utils.ExtentReporter;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+public class Hooks {
+
+    public static CustomDriver driver;
+
+    @Before
+    public void setUp(Scenario scenario) throws Exception {
+        // Create Extent test entry for each scenario
+        ExtentReporter.createTest(scenario.getName());
+
+        // Your existing browser setup
+        BaseTest base = new BaseTest();
+        WebDriver rawDriver = base.initializeBrowser();
+        driver = new CustomDriver(rawDriver);
+    }
+
+    @After
+    public void tearDown(Scenario scenario) {
+        if (scenario.isFailed()) {
+            String screenshotDir = "target/screenshots/";
+            String screenshotName = scenario.getName().replaceAll("[^a-zA-Z0-9-_]", "_") + ".png";
+            String fullPath = screenshotDir + screenshotName;
+
+            try {
+                Files.createDirectories(Paths.get(screenshotDir));
+                byte[] screenshot = ((TakesScreenshot) driver.getDriver()).getScreenshotAs(OutputType.BYTES);
+                Files.write(Paths.get(fullPath), screenshot);
+
+                // Log to Extent Report
+                ExtentReporter.getTest().log(Status.FAIL, "Scenario Failed");
+                ExtentReporter.getTest().addScreenCaptureFromPath(fullPath);
+            } catch (IOException e) {
+                ExtentReporter.getTest().log(Status.ERROR, "Screenshot failed: " + e.getMessage());
+            }
+        } else {
+            ExtentReporter.getTest().log(Status.PASS, "Scenario Passed");
+        }
+
+        // Flush report after each scenario
+        ExtentReporter.flush();
+    }
+}
