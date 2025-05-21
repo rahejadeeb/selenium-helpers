@@ -1,0 +1,38 @@
+import org.junit.runner.JUnitCore;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
+public class MasterTestRunner {
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("▶ Running full test suite...");
+        JUnitCore.runClasses(TestRunner.class);
+
+        File rerunFile = new File("target/failed_scenarios.txt");
+
+        if (rerunFile.exists() && rerunFile.length() > 0) {
+            List<String> lines = Files.readAllLines(rerunFile.toPath());
+            List<String> updatedLines = new ArrayList<>();
+
+            for (String line : lines) {
+                line = line.trim();
+                if (!line.isEmpty() && !line.startsWith("src/test/resources")) {
+                    updatedLines.add("src/test/resources/features/" + line.replace("features/", ""));
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+
+            Files.write(rerunFile.toPath(), updatedLines, StandardOpenOption.TRUNCATE_EXISTING);
+
+            System.out.println("✅ Fixed failed scenario paths:");
+            updatedLines.forEach(System.out::println);
+
+            System.out.println("🔁 Rerunning failed scenarios...");
+            JUnitCore.runClasses(RerunFailedScenarios.class);
+        } else {
+            System.out.println("✅ All scenarios passed. No rerun needed.");
+        }
+    }
+}
