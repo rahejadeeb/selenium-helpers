@@ -1,0 +1,96 @@
+package stepdefs;
+
+import io.cucumber.java.en.*;
+
+public class OLLAccountSteps {
+
+    @Given("login to intralink application")
+    public void login_to_intralink_application() {
+        // implement login steps here
+    }
+
+    @When("the user selects the environment, transit and click the corporate and commercial services")
+    public void select_environment_transit_and_services() {
+        // implement environment selection
+    }
+
+    @And("navigates to the customer locate page and enter the customer name")
+    public void navigate_to_customer_locate_and_enter_name() {
+        // implement locate customer step
+    }
+
+    @And("select the cid from the list and click the done button")
+    public void select_cid_and_click_done() {
+        // select CID logic
+    }
+
+    @And("enter the details in the loan account option page to retrieve the cid")
+    public void enter_loan_account_details_to_get_cid() {
+        // loan account details
+    }
+
+    @And("retrieve the renewal date from the page")
+    public void retrieve_renewal_date_from_page() {
+        // get renewal date
+    }
+
+    @And("get the account number from the page")
+    public void get_account_number_from_page() {
+        // extract account number
+    }
+
+    @And("click the next button")
+    public void click_next_button() {
+        // click next
+    }
+
+    @And("enter the details on the page to retrieve the issue date")
+    public void enter_details_to_get_issue_date() {
+        // enter issue date details
+    }
+
+    @And("enter the repricing date on the page")
+    public void enter_repricing_date_on_page() {
+        // enter repricing date
+    }
+
+    @And("enter the maturity date")
+    public void enter_maturity_date() {
+        // enter maturity date
+    }
+
+    @And("enter the remaining other fields mandatory on the page")
+    public void enter_remaining_mandatory_fields() {
+        // enter required fields
+    }
+
+    @And("enter the sundry information")
+    public void enter_sundry_information() {
+        // sundry info
+    }
+
+    @And("click the done button")
+    public void click_done_button() {
+        // click done
+    }
+
+    @And("click the submit button")
+    public void click_submit_button() {
+        // click submit
+    }
+
+    @Then("account created successfully message should be displayed on the page")
+    public void verify_account_creation_success_message() {
+        // assert success message
+    }
+
+    @And("application number should be displayed on the page")
+    public void verify_application_number_displayed() {
+        // assert application number
+    }
+
+    @And("OLL Account number should be displayed on the page")
+    public void verify_oll_account_number_displayed() {
+        // assert OLL account number
+    }
+}
