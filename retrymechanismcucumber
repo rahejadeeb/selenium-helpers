@@ -1,0 +1,48 @@
+import cucumber.api.CucumberOptions;
+import cucumber.api.junit.Cucumber;
+import org.junit.AfterClass;
+import org.junit.runner.RunWith;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "src/test/resources/features",   // <-- Make sure your .feature files are here
+    glue = {"stepdefinitions"},                 // <-- Adjust according to your package
+    plugin = {
+        "pretty",
+        "html:target/cucumber-reports",
+        "rerun:target/failed_scenarios.txt"
+    },
+    monochrome = true
+)
+public class TestRunner {
+
+    @AfterClass
+    public static void fixFailedScenarioPaths() throws IOException {
+        File rerunFile = new File("target/failed_scenarios.txt");
+
+        if (rerunFile.exists()) {
+            List<String> updatedLines = new ArrayList<>();
+            List<String> originalLines = Files.readAllLines(rerunFile.toPath());
+
+            for (String line : originalLines) {
+                line = line.trim();
+                if (!line.startsWith("src/test/resources/")) {
+                    updatedLines.add("src/test/resources/" + line);
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+
+            Files.write(rerunFile.toPath(), updatedLines, StandardOpenOption.TRUNCATE_EXISTING);
+            System.out.println("✅ Updated failed_scenarios.txt with full paths.");
+        } else {
+            System.out.println("ℹ️ No failed_scenarios.txt found. All tests may have passed.");
+        }
+    }
+}
