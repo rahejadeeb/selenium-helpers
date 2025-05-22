@@ -1,0 +1,60 @@
+package runner;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FailedScenariosPathFixer {
+
+    public static void main(String[] args) throws Exception {
+        String failedFilePath = "target/failed_scenarios.txt";
+        File file = new File(failedFilePath);
+
+        if (!file.exists() || file.length() == 0) {
+            System.out.println("❗ No failed scenarios file found or file is empty.");
+            return;
+        }
+
+        List<String> lines = Files.readAllLines(file.toPath());
+        List<String> fixedLines = new ArrayList<>();
+
+        String projectDir = System.getProperty("user.dir");
+        String featuresBasePath = "src/test/resources/features/";
+
+        for (String line : lines) {
+            String trimmed = line.replaceAll("[\\s\\r\\n]+", "");
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            if (trimmed.startsWith(projectDir)) {
+                String relative = trimmed.substring(projectDir.length());
+                if (relative.startsWith("/") || relative.startsWith("\\")) {
+                    relative = relative.substring(1);
+                }
+                fixedLines.add(relative);
+            } else if (!trimmed.contains("/") && !trimmed.contains("\\")) {
+                fixedLines.add(featuresBasePath + trimmed);
+            } else {
+                fixedLines.add(trimmed);
+            }
+        }
+
+        System.out.println("Fixed paths to be written:");
+        fixedLines.forEach(System.out::println);
+
+        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+            for (int i = 0; i < fixedLines.size(); i++) {
+                writer.write(fixedLines.get(i));
+                if (i != fixedLines.size() - 1) {
+                    writer.newLine();
+                }
+            }
+        }
+
+        System.out.println("✅ failed_scenarios.txt updated successfully.");
+    }
+}
