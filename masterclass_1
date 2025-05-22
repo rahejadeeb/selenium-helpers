@@ -1,0 +1,66 @@
+package runner;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+
+public class MasterTestRunner {
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("🎬 Starting full test run...");
+
+        // Step 1: Run initial full test suite
+        Result result = JUnitCore.runClasses(TestRunner.class);
+
+        // Step 2: If all passed, no rerun needed
+        if (result.wasSuccessful()) {
+            System.out.println("✅ All tests passed. No rerun needed.");
+            return;
+        }
+
+        // Step 3: Check failed scenarios file existence and contents
+        String failedFilePath = "target/failed_scenarios.txt";
+        File file = new File(failedFilePath);
+
+        if (!file.exists() || file.length() == 0) {
+            System.out.println("✅ No failed scenarios recorded.");
+            return;
+        }
+
+        // Step 4: Fix any absolute paths to relative paths in the rerun file
+        List<String> fixedLines = new ArrayList<>();
+        String projectDir = System.getProperty("user.dir");
+
+        List<String> lines = Files.readAllLines(file.toPath());
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (trimmedLine.startsWith(projectDir)) {
+                // Remove the absolute project directory prefix
+                String relativePath = trimmedLine.substring(projectDir.length());
+                if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+                    relativePath = relativePath.substring(1);
+                }
+                fixedLines.add(relativePath);
+            } else {
+                fixedLines.add(trimmedLine);
+            }
+        }
+
+        // Overwrite the file with fixed relative paths
+        Files.write(file.toPath(), fixedLines);
+
+        // Step 5: Rerun failed scenarios only
+        System.out.println("🔁 Rerunning failed scenarios...");
+        Result rerunResult = JUnitCore.runClasses(RerunFailedScenarios.class);
+
+        if (rerunResult.wasSuccessful()) {
+            System.out.println("✅ All failed tests passed in rerun.");
+        } else {
+            System.out.println("❌ Some tests still failed in rerun.");
+        }
+    }
+}
