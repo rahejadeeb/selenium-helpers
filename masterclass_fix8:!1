@@ -1,0 +1,47 @@
+package runner;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
+import org.junit.runner.JUnitCore;
+
+public class MasterTestRunner {
+    public static void main(String[] args) throws Exception {
+        // 1. Run the main TestRunner
+        System.out.println("Running initial test suite...");
+        JUnitCore.runClasses(TestRunner.class);
+
+        // 2. Path to failed scenarios file
+        String failedFilePath = "target/failed_scenarios.txt";
+
+        // 3. Check if file exists and has failures
+        File file = new File(failedFilePath);
+        if (!file.exists() || file.length() == 0) {
+            System.out.println("✅ No failed scenarios to rerun.");
+            return;
+        }
+
+        // 4. Fix the path in the failed file (add absolute path)
+        List<String> fixedLines = new ArrayList<>();
+        String projectDir = System.getProperty("user.dir");
+
+        List<String> originalLines = Files.readAllLines(file.toPath());
+        for (String line : originalLines) {
+            line = line.trim();
+            if (!line.startsWith("src")) {
+                String absolutePath = projectDir + "/src/test/resources/features/" + line;
+                fixedLines.add(absolutePath.replace("\\", "/"));
+            } else {
+                fixedLines.add(line.replace("\\", "/"));
+            }
+        }
+
+        // 5. Overwrite the file with fixed lines
+        Files.write(file.toPath(), fixedLines);
+
+        // 6. Rerun failed tests
+        System.out.println("🔁 Rerunning failed scenarios...");
+        JUnitCore.runClasses(RerunFailedScenarios.class);
+    }
+}
