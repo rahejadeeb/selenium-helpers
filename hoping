@@ -1,0 +1,92 @@
+package runner;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+
+public class MasterTestRunner {
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("🎬 Starting full test run...");
+
+        // Step 1: Run initial full test suite
+        Result result = JUnitCore.runClasses(TestRunner.class);
+
+        if (result.wasSuccessful()) {
+            System.out.println("✅ All tests passed. No rerun needed.");
+            return;
+        }
+
+        // Step 2: Check failed scenarios file existence and contents
+        String failedFilePath = "target/failed_scenarios.txt";
+        File file = new File(failedFilePath);
+
+        if (!file.exists() || file.length() == 0) {
+            System.out.println("✅ No failed scenarios recorded.");
+            return;
+        }
+
+        // Step 3: Fix paths in rerun file to be relative with line numbers and remove empty lines
+        List<String> lines = Files.readAllLines(file.toPath());
+        List<String> fixedLines = new ArrayList<>();
+
+        String projectDir = System.getProperty("user.dir");
+        String featuresBasePath = "src/test/resources/features/";
+
+        for (String line : lines) {
+            // Remove all whitespace, carriage returns, line feeds from ends
+            String trimmed = line.replaceAll("[\\s\\r\\n]+", "");
+
+            if (trimmed.isEmpty()) {
+                continue;  // skip truly empty lines
+            }
+
+            // Fix absolute paths to relative paths
+            if (trimmed.startsWith(projectDir)) {
+                String relative = trimmed.substring(projectDir.length());
+                if (relative.startsWith("/") || relative.startsWith("\\")) {
+                    relative = relative.substring(1);
+                }
+                fixedLines.add(relative);
+                continue;
+            }
+
+            // Add base feature folder if only filename (no slashes)
+            if (!trimmed.contains("/") && !trimmed.contains("\\")) {
+                fixedLines.add(featuresBasePath + trimmed);
+            } else {
+                fixedLines.add(trimmed);
+            }
+        }
+
+        // Debug print final fixed lines before writing
+        System.out.println("Final fixed rerun paths:");
+        fixedLines.forEach(System.out::println);
+
+        // Step 4: Write fixed rerun file WITHOUT trailing newline
+        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+            for (int i = 0; i < fixedLines.size(); i++) {
+                writer.write(fixedLines.get(i));
+                if (i != fixedLines.size() - 1) {
+                    writer.newLine();
+                }
+            }
+        }
+
+        // Step 5: Rerun failed scenarios
+        System.out.println("🔁 Rerunning failed scenarios...");
+        Result rerunResult = JUnitCore.runClasses(RerunFailedScenarios.class);
+
+        if (rerunResult.wasSuccessful()) {
+            System.out.println("✅ All failed tests passed in rerun.");
+        } else {
+            System.out.println("❌ Some tests still failed in rerun.");
+        }
+    }
+}
