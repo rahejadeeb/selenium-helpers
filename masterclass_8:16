@@ -1,0 +1,56 @@
+package runner;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+
+public class MasterTestRunner {
+    public static void main(String[] args) throws Exception {
+        System.out.println("🎬 Starting full test run...");
+
+        // Run initial test
+        Result result = JUnitCore.runClasses(TestRunner.class);
+
+        // Wait for it to finish before proceeding
+        if (result.wasSuccessful()) {
+            System.out.println("✅ All tests passed. No rerun needed.");
+            return;
+        }
+
+        // Check and process failed scenario file
+        String failedFilePath = "target/failed_scenarios.txt";
+        File file = new File(failedFilePath);
+        if (!file.exists() || file.length() == 0) {
+            System.out.println("✅ No failed scenarios recorded.");
+            return;
+        }
+
+        // Fix file paths in failed_scenarios.txt
+        List<String> fixedLines = new ArrayList<>();
+        String projectDir = System.getProperty("user.dir");
+
+        List<String> lines = Files.readAllLines(file.toPath());
+        for (String line : lines) {
+            if (!line.trim().startsWith("src")) {
+                fixedLines.add(projectDir + "/src/test/resources/features/" + line.trim());
+            } else {
+                fixedLines.add(line.trim());
+            }
+        }
+
+        Files.write(file.toPath(), fixedLines);
+
+        // Now rerun failed scenarios
+        System.out.println("🔁 Rerunning failed scenarios...");
+        Result rerunResult = JUnitCore.runClasses(RerunFailedScenarios.class);
+
+        if (rerunResult.wasSuccessful()) {
+            System.out.println("✅ All failed tests passed in rerun.");
+        } else {
+            System.out.println("❌ Some tests still failed in rerun.");
+        }
+    }
+}
