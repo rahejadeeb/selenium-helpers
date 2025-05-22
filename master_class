@@ -1,0 +1,22 @@
+// Fix file paths in failed_scenarios.txt
+List<String> fixedLines = new ArrayList<>();
+String projectDir = System.getProperty("user.dir");
+
+List<String> lines = Files.readAllLines(file.toPath());
+for (String line : lines) {
+    String trimmedLine = line.trim();
+    if (trimmedLine.startsWith(projectDir)) {
+        // Remove absolute project dir prefix to make relative path
+        String relativePath = trimmedLine.substring(projectDir.length());
+        // Remove leading slash or backslash
+        if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+            relativePath = relativePath.substring(1);
+        }
+        fixedLines.add(relativePath);
+    } else {
+        // Already relative or something else; keep as is
+        fixedLines.add(trimmedLine);
+    }
+}
+
+Files.write(file.toPath(), fixedLines);
