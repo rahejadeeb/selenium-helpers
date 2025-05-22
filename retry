@@ -1,0 +1,56 @@
+import cucumber.api.CucumberOptions;
+import cucumber.api.junit.Cucumber;
+import org.junit.AfterClass;
+import org.junit.runner.RunWith;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "src/test/resources/features",
+    glue = {"stepdefinitions"},
+    plugin = {
+        "pretty",
+        "html:target/cucumber-reports",
+        "rerun:target/failed_scenarios.txt"
+    },
+    monochrome = true
+)
+public class TestRunner {
+
+    @AfterClass
+    public static void updateFailedScenarioPaths() {
+        Path rerunPath = Paths.get("target/failed_scenarios.txt");
+
+        try {
+            if (!Files.exists(rerunPath)) {
+                System.out.println("ℹ️ No failed_scenarios.txt found. All tests might have passed.");
+                return;
+            }
+
+            System.out.println("🔧 Found failed_scenarios.txt — updating paths...");
+            List<String> lines = Files.readAllLines(rerunPath);
+            List<String> updated = new ArrayList<>();
+
+            for (String line : lines) {
+                line = line.trim();
+
+                if (!line.isEmpty()) {
+                    // Force the correct prefix
+                    String corrected = "src/test/resources/" + line.replace("src/test/resources/", "");
+                    updated.add(corrected);
+                    System.out.println("✅ Updated line: " + corrected);
+                }
+            }
+
+            Files.write(rerunPath, updated, StandardOpenOption.TRUNCATE_EXISTING);
+            System.out.println("✅ All lines updated in failed_scenarios.txt.");
+
+        } catch (IOException e) {
+            System.err.println("❌ Failed to update failed_scenarios.txt: " + e.getMessage());
+        }
+    }
+}
