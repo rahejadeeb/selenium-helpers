@@ -1,0 +1,20 @@
+package runner;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+
+public class DynamicTestRunner {
+
+    public static void main(String[] args) {
+        System.out.println("🎬 Starting dynamic test run based on Excel rows...");
+
+        // Just run your main TestRunner which handles Excel row looping in hooks
+        Result result = JUnitCore.runClasses(TestRunner.class);
+
+        if (result.wasSuccessful()) {
+            System.out.println("✅ All tests passed.");
+        } else {
+            System.out.println("❌ Some tests failed.");
+        }
+    }
+}
