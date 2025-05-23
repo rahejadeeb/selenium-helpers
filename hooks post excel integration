@@ -1,0 +1,13 @@
+@Before(order = 0)
+public void setUpBrowser() {
+    // browser setup, report start etc.
+}
+
+@Before(order = 1)
+public void loadData() {
+    List<Map<String, String>> testData = ExcelReader.getData("src/test/resources/testdata/TestData.xlsx", "LoginData");
+    String rowIndex = System.getProperty("rowIndex");
+    if (rowIndex != null) {
+        currentRow = testData.get(Integer.parseInt(rowIndex));
+    }
+}
