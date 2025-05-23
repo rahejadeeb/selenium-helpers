@@ -1,0 +1,39 @@
+package runner;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+import utils.ExcelReader;
+
+import java.util.List;
+import java.util.Map;
+
+public class DynamicTestRunner {
+
+    public static void main(String[] args) {
+        System.out.println("🎬 Starting dynamic test run based on Excel rows...");
+
+        // Load Excel data
+        List<Map<String, String>> testData = ExcelReader.getData(
+                "src/test/resources/testdata/TestData.xlsx", "LoginData"
+        );
+
+        int totalRows = testData.size();
+        System.out.println("📊 Total rows found in Excel: " + totalRows);
+
+        for (int i = 0; i < totalRows; i++) {
+            System.setProperty("rowIndex", String.valueOf(i));
+            System.out.println("\n▶ Running test for rowIndex: " + i);
+
+            // Run the test runner once per row
+            Result result = JUnitCore.runClasses(TestRunner.class);
+
+            if (result.wasSuccessful()) {
+                System.out.println("✅ Row " + i + " PASSED.");
+            } else {
+                System.out.println("❌ Row " + i + " FAILED.");
+            }
+        }
+
+        System.out.println("\n🏁 All Excel-driven test runs completed.");
+    }
+}
