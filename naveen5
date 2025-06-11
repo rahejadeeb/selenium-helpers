@@ -1,0 +1,6 @@
+  String filePath = "src/test/resources/testdata.xlsx";
+        String sheetName = "Sheet1";
+
+        List<Map<String, String>> testData = ExcelReader.readExcelData(filePath, sheetName);
+
+        for (Map<String, String> row : testData) {
