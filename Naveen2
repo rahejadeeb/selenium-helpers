@@ -1,0 +1,23 @@
+public class LoginTest {
+
+    public static void main(String[] args) {
+        String filePath = "testdata.xlsx";
+        String sheetName = "Sheet1";
+
+        List<Map<String, String>> testData = ExcelReader.readExcelData(filePath, sheetName);
+
+        for (Map<String, String> row : testData) {
+            String username = row.get("Username");
+            String password = row.get("Password");
+            String role     = row.get("Role");
+
+            System.out.println("Running test with: " + username + ", " + password + ", " + role);
+
+            // Launch browser and perform test with username/password
+            // Example:
+            // driver.findElement(By.id("username")).sendKeys(username);
+            // driver.findElement(By.id("password")).sendKeys(password);
+            // driver.findElement(By.id("loginButton")).click();
+        }
+    }
+}
