@@ -1,0 +1,20 @@
+// 2. Wait for modal's Submit button to appear using visible text
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+WebElement modalSubmit = wait.until(ExpectedConditions.visibilityOfElementLocated(
+    By.xpath("//button[.//span[text()='Submit']]")
+));
+
+// 3. Scroll into view to avoid overlap
+((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", modalSubmit);
+Thread.sleep(500); // Allow time for animations or transitions
+
+// 4. Wait until it's clickable
+wait.until(ExpectedConditions.elementToBeClickable(modalSubmit));
+
+// 5. Click the modal's Submit button (regular or JS fallback)
+try {
+    modalSubmit.click();
+} catch (ElementClickInterceptedException e) {
+    // Fallback to JS click
+    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", modalSubmit);
+}
