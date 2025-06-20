@@ -1,0 +1,42 @@
+Option 1: Use JavaScript Click (skip WebDriver’s checks)
+If you haven’t already — this works even when something is overlapping:
+
+java
+Copy
+Edit
+WebElement modalSubmit = driver.findElement(By.xpath("//button[.//span[text()='Submit']]"));
+((JavascriptExecutor) driver).executeScript("arguments[0].click();", modalSubmit);
+✅ Option 2: Wait for animations to finish
+Sometimes the modal appears, but the animation hasn’t finished. Try adding a manual pause just before the click:
+
+java
+Copy
+Edit
+Thread.sleep(1000); // Wait for modal to fully render
+((JavascriptExecutor) driver).executeScript("arguments[0].click();", modalSubmit);
+✅ Option 3: Make sure no overlays are present
+If a loading spinner or overlay exists (even transparent), it might intercept the click.
+
+Example:
+java
+Copy
+Edit
+// Wait for overlay to disappear (adjust selector as needed)
+wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("loader"))); // Replace with real class
+✅ Option 4: Retry click logic (stale/intercept-safe method)
+You can wrap the click in a retry block like this:
+
+java
+Copy
+Edit
+WebElement modalSubmit = driver.findElement(By.xpath("//button[.//span[text()='Submit']]"));
+int attempts = 0;
+while (attempts < 3) {
+    try {
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", modalSubmit);
+        break; // success
+    } catch (Exception e) {
+        Thread.sleep(1000);
+        attempts++;
+    }
+}
